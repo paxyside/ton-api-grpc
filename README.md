@@ -90,7 +90,6 @@ make proto
 
 ### Example Methods
 
-* `Ping` – health check
 * `GetAccount` – retrieve TON account state and balance
 * `GetJAccount` – get Jetton account information
 * `GetSeqno` – fetch seqno of wallet address
@@ -132,11 +131,14 @@ app:
   server:
     host: "0.0.0.0"
     port: "50051"
+    prometheus_host: "0.0.0.0"
+    prometheus_port: "9090"
+    read_header_timeout: 5s
     shutdown_timeout: 5s
     auth_token: "secret"
 
   node:
-    url: "https://testnet.tonapi.io" # replace to mainnet if needed
+    url: "https://testnet.tonapi.io" # https://tonapi.io - mainnet node url, replace if needed
     api_key: "YOUR-API-KEY"
     timeout: 10s
     rate_limit: 1
@@ -148,7 +150,7 @@ app:
 ## 🧪 Testing
 
 ```bash
-go test ./...
+go test ./... # or make tests
 ```
 
 Includes:

@@ -32,6 +32,6 @@ WORKDIR /app
 COPY --from=build /usr/bin/server .
 
 HEALTHCHECK --interval=20s --timeout=5s --retries=5 --start-period=30s \
-    CMD grpcurl -fsS -m5 -A'docker-healthcheck' http://127.0.0.1/tonnode.TonNodeService/Ping || exit 1
+    CMD grpcurl -fsS -m5 -A'docker-healthcheck' http://127.0.0.1/ping || exit 1
 
 CMD ["./server"]

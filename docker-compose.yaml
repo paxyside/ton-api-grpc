@@ -6,6 +6,7 @@ services:
     container_name: "ton-node-service"
     ports:
       - "50051:50051"
+      - "9090:9090"
     networks:
       - ton-node-network
     depends_on:
@@ -18,9 +19,9 @@ services:
     image: prom/prometheus
     container_name: "ton-node-prometheus"
     ports:
-      - "9090:9090"
+      - "9091:9090"
     volumes:
-      - ./infra/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - ton-node-network
 

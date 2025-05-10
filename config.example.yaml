@@ -3,6 +3,9 @@ app:
   server:
     host: "0.0.0.0"
     port: "50051"
+    prometheus_host: "0.0.0.0"
+    prometheus_port: "9090"
+    read_header_timeout: 5s
     shutdown_timeout: 5s
     auth_token: "secret"
 
@@ -12,4 +15,3 @@ app:
     timeout: 10s
     rate_limit: 1
     rate_burst: 5
-

@@ -4,6 +4,6 @@ global:
     monitor: "ton-node"
 
 scrape_configs:
-  - job_name: "grpc-server"
+  - job_name: "ton-node"
     static_configs:
-      - targets: ["ton-node-service:50051"]
+      - targets: ["ton-node-service:9090"]

@@ -5,19 +5,12 @@ package tonnode;
 option go_package = "internal/controller/grpc/tonnodepb;tonnodepb";
 
 service TonNodeService {
-  rpc Ping(PingRequest) returns (PingResponse);
   rpc GetAccount(GetAccountRequest) returns (AccountInfoResponse);
   rpc GetJAccount(GetJAccountRequest) returns (JettonAccountInfoResponse);
   rpc GetSeqno(GetSeqnoRequest) returns (GetSeqnoResponse);
   rpc GetTxTrace(GetTxTraceRequest) returns (TraceResponse);
   rpc EmulateTxTrace(EmulateTxTraceRequest) returns (TraceResponse);
   rpc SendMsg(SendMsgRequest) returns (SendMsgResponse);
-}
-
-message PingRequest {}
-
-message PingResponse {
-  string message = 1;
 }
 
 message GetAccountRequest {
