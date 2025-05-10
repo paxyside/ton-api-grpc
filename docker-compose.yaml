@@ -1,0 +1,32 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: "ton-node-service"
+    ports:
+      - "50051:50051"
+    networks:
+      - ton-node-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    volumes:
+      - ./config.yaml:/app/config.yaml
+
+  prometheus:
+    image: prom/prometheus
+    container_name: "ton-node-prometheus"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
+    networks:
+      - ton-node-network
+
+networks:
+  ton-node-network:
+    external: true
+
+volumes:
+  ton-node-volume:

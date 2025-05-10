@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package tonnode;
+
+option go_package = "internal/controller/grpc/tonnodepb;tonnodepb";
+
+service TonNodeService {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc GetAccount(GetAccountRequest) returns (AccountInfoResponse);
+  rpc GetJAccount(GetJAccountRequest) returns (JettonAccountInfoResponse);
+  rpc GetSeqno(GetSeqnoRequest) returns (GetSeqnoResponse);
+  rpc GetTxTrace(GetTxTraceRequest) returns (TraceResponse);
+  rpc EmulateTxTrace(EmulateTxTraceRequest) returns (TraceResponse);
+  rpc SendMsg(SendMsgRequest) returns (SendMsgResponse);
+}
+
+message PingRequest {}
+
+message PingResponse {
+  string message = 1;
+}
+
+message GetAccountRequest {
+  string address = 1;
+}
+
+message AccountInfoResponse {
+  bytes raw_json_account_info = 1;
+}
+
+message GetJAccountRequest {
+  string address = 1;
+  string jetton_contract = 2;
+}
+
+message JettonAccountInfoResponse {
+  bytes raw_json_jetton_account_info = 1;
+}
+
+message GetSeqnoRequest {
+  string address = 1;
+}
+
+message GetSeqnoResponse {
+  uint64 seqno = 1;
+}
+
+message GetTxTraceRequest {
+  string message_hash = 1;
+}
+
+message EmulateTxTraceRequest {
+  string boc = 1;
+}
+
+message TraceResponse {
+  bytes raw_json_trace = 1;
+}
+
+message SendMsgRequest {
+  string boc = 1;
+}
+
+message SendMsgResponse {
+  string status = 1;
+}
