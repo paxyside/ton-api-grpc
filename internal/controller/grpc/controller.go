@@ -23,12 +23,6 @@ func NewTonNodeController(uc usecase.UseCase, l logger.Loggerer) *TonNodeControl
 	}
 }
 
-func (c *TonNodeController) Ping(_ context.Context, _ *tonnodepb.PingRequest) (*tonnodepb.PingResponse, error) {
-	return &tonnodepb.PingResponse{
-		Message: "pong",
-	}, nil
-}
-
 func (c *TonNodeController) GetAccount(
 	ctx context.Context, req *tonnodepb.GetAccountRequest,
 ) (*tonnodepb.AccountInfoResponse, error) {

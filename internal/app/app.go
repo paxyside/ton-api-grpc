@@ -8,81 +8,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 	"ton-node/config"
 	log "ton-node/infra/logger"
-	"ton-node/infra/node"
-	grpcController "ton-node/internal/controller/grpc"
-	"ton-node/internal/controller/grpc/tonnodepb"
-	"ton-node/internal/domain/logger"
-	tonModel "ton-node/internal/domain/ton"
-	"ton-node/internal/domain/usecase"
-	uc "ton-node/internal/usecase"
-
-	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
-	"github.com/prometheus/client_golang/prometheus"
-	"go.opentelemetry.io/otel/trace"
-
-	"google.golang.org/grpc/reflection"
 
 	"emperror.dev/errors"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 )
-
-type App struct {
-	Controller *grpcController.TonNodeController
-	UseCase    usecase.UseCase
-	NodeSvc    tonModel.NodeService
-}
-
-func NewApp(nodeSvc tonModel.NodeService, l logger.Loggerer) *App {
-	useCase := uc.NewUseCase(nodeSvc)
-	controller := grpcController.NewTonNodeController(useCase, l)
-
-	return &App{
-		NodeSvc:    nodeSvc,
-		UseCase:    useCase,
-		Controller: controller,
-	}
-}
-
-func NewNodeService(rpcURL, apiKey string, timeout time.Duration, rps, burst int) tonModel.NodeService {
-	return node.NewService(rpcURL, apiKey, timeout, rps, burst)
-}
-
-func NewGRPCServer(dep *App, l logger.Loggerer) *grpc.Server {
-	var opts []grpc.ServerOption
-
-	srvMetrics := grpcprom.NewServerMetrics(
-		grpcprom.WithServerHandlingTimeHistogram(
-			grpcprom.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 0.3, 0.6, 1, 3, 6, 9, 20, 30, 60, 90, 120}),
-		),
-	)
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(srvMetrics)
-	exemplarFromContext := func(ctx context.Context) prometheus.Labels {
-		if span := trace.SpanContextFromContext(ctx); span.IsSampled() {
-			return prometheus.Labels{"traceID": span.TraceID().String()}
-		}
-		return nil
-	}
-
-	opts = append(opts,
-		grpc.ChainUnaryInterceptor(
-			srvMetrics.UnaryServerInterceptor(grpcprom.WithExemplarFromContext(exemplarFromContext)),
-			// grpcController.AuthMiddleware(),
-			grpcController.LoggerInterceptor(l),
-		),
-	)
-
-	grpcServer := grpc.NewServer(opts...)
-	tonnodepb.RegisterTonNodeServiceServer(grpcServer, dep.Controller)
-
-	reflection.Register(grpcServer)
-
-	return grpcServer
-}
 
 func StartApp() {
 	l := log.Init(
@@ -97,15 +29,7 @@ func StartApp() {
 		os.Exit(1)
 	}
 
-	nodeSvc := NewNodeService(
-		viper.GetString("app.node.url"),
-		viper.GetString("app.node.api_key"),
-		viper.GetDuration("app.node.timeout"),
-		viper.GetInt("app.node.rate_limit"),
-		viper.GetInt("app.node.rate_burst"),
-	)
-
-	di := NewApp(nodeSvc, l)
+	di := newApp(l)
 
 	addr := fmt.Sprintf("%s:%s",
 		viper.GetString("app.server.host"),
@@ -118,23 +42,24 @@ func StartApp() {
 		os.Exit(1)
 	}
 
-	grpcServer := NewGRPCServer(di, l)
-
-	l.Info("starting server", slog.String("address", addr))
-
 	shutdownTimeout := viper.GetDuration("app.server.shutdown_timeout")
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	serveErr := make(chan error, 1)
+
+	server, promRegistry := NewGRPCServer(di, l)
 	go func() {
-		if err = grpcServer.Serve(lis); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+		l.Info("starting server", slog.String("address", addr))
+		if err = server.Serve(lis); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
 			serveErr <- err
 		} else {
 			serveErr <- nil
 		}
 	}()
+
+	metricsServer := startMetricsServer(promRegistry, l)
 
 	select {
 	case <-ctx.Done():
@@ -146,29 +71,39 @@ func StartApp() {
 		return
 	}
 
-	l.Info("shutdown initiated")
-
 	gracefulCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
-	stopped := make(chan struct{})
+	grpcDone := make(chan struct{})
 
 	go func() {
-		grpcServer.GracefulStop()
-		close(stopped)
+		server.GracefulStop()
+		close(grpcDone)
+	}()
+
+	metricsDone := make(chan struct{})
+
+	go func() {
+		if err = metricsServer.Shutdown(gracefulCtx); err != nil {
+			l.Warn("failed to shutdown metrics server", err)
+		}
+		close(metricsDone)
 	}()
 
 	select {
-	case <-stopped:
-		l.Info("server stopped gracefully")
+	case <-grpcDone:
 	case <-gracefulCtx.Done():
 		l.Warn("shutdown timeout, forcing stop")
 
 		select {
-		case <-stopped:
-			l.Info("server stopped just after timeout")
+		case <-grpcDone:
 		default:
-			grpcServer.Stop()
+			server.Stop()
 		}
 	}
+
+	<-metricsDone
+
+	l.Info("all services stopped gracefully")
+	l.Info("exit")
 }
