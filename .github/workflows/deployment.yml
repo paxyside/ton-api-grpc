@@ -23,11 +23,9 @@ jobs:
 
       - name: Install protoc-gen-go
         run: |
-          GO111MODULE=on go get google.golang.org/protobuf/cmd/protoc-gen-go
-          GO111MODULE=on go get google.golang.org/grpc/cmd/protoc-gen-go-grpc
-
-      - name: Add Go bin to PATH
-        run: echo "::add-path::$(go env GOPATH)/bin"
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Setup config
         run: make -B setup
