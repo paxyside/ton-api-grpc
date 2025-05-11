@@ -1,0 +1,59 @@
+name: Deployment TON-Node
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.2
+
+      - name: Run lint
+        run: make lint-fix
+
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.2
+
+      - name: Run tests
+        run: make tests
+
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Setup config
+        run: make setup
+
+      - name: Replace API Key
+        run: |
+          sed -i 's/api_key: ".*"/api_key: "${{ secrets.TON_API_KEY }}"/' config.yaml
+
+      - name: Generate proto
+        run: make proto
+
+      - name: Build Docker and Run
+        run: make docker_run
