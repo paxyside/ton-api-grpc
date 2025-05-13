@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+  external_labels:
+    monitor: "ton-node"
+
+scrape_configs:
+  - job_name: "ton-node"
+    static_configs:
+      - targets: ["ton-node-service.backend.svc.cluster.local:9090"]

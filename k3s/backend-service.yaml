@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ton-node-service
+  namespace: backend
+spec:
+  selector:
+    app: ton-node-service
+  ports:
+    - name: "grpc"
+      protocol: TCP
+      port: 50051
+      targetPort: 50051
+      nodePort: 30051
+    - name: "metrics"
+      protocol: TCP
+      port: 9090
+      targetPort: 9090
+      nodePort: 30090
+  type: NodePort
